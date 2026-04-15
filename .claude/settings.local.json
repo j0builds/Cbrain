@@ -44,7 +44,12 @@
       "Bash(curl -s -X POST http://localhost:8000/api/v1/sync/jopedia)",
       "Bash(curl -s -X POST http://localhost:8000/api/v1/sync/notion)",
       "Bash(curl -s -X POST http://localhost:8000/api/v1/sync/memory)",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/skills/0a05fb93-4aa5-4699-9d6f-435bbccaa78c/execute -H 'Content-Type: application/json' -d '{\"input_data\":{}}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/skills/af06e4b1-300c-4b23-b5ba-6053a809ad66/execute -H 'Content-Type: application/json' -d '{\"input_data\":{}}')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['status'], '|', d['output_text'][:200] if d['output_text'] else 'None'\\)\")",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/skills/856d3086-0eef-4e65-8712-e27d11c6f33e/execute -H 'Content-Type: application/json' -d '{\"input_data\":{\"topic\":\"B2B sales strategy\"}}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/skills/5a6637fa-b834-4d1a-9a41-f3acf564d654/execute -H 'Content-Type: application/json' -d '{\"input_data\":{}}')"
     ]
   }
 }
