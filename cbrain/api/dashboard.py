@@ -16,8 +16,8 @@ async def get_dashboard(db: DBSession):
     tasks_q = (
         select(Task)
         .where(Task.status.in_(["open", "in_progress", "blocked"]))
-        .order_by(Task.priority.asc())
-        .limit(10)
+        .order_by(Task.importance_score.desc())
+        .limit(15)
     )
     tasks_result = await db.execute(tasks_q)
     top_tasks = tasks_result.scalars().all()
@@ -59,6 +59,9 @@ def _task_dict(t: Task) -> dict:
         "status": t.status,
         "blocker": t.blocker,
         "source": t.source,
+        "importance_score": t.importance_score,
+        "instructions": t.instructions,
+        "claude_prompt": t.claude_prompt,
         "due_date": t.due_date.isoformat() if t.due_date else None,
         "created_at": t.created_at.isoformat(),
     }

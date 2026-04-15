@@ -19,6 +19,9 @@ export interface Task {
   status: string
   blocker: string | null
   source: string
+  importance_score: number
+  instructions: string | null
+  claude_prompt: string | null
   due_date: string | null
   created_at: string
   updated_at: string
