@@ -90,4 +90,5 @@ export const api = {
   syncNotion: () => request('/sync/notion', { method: 'POST' }),
   syncMemory: () => request('/sync/memory', { method: 'POST' }),
   syncJopedia: () => request('/sync/jopedia', { method: 'POST' }),
+  extractTasks: () => request('/sync/extract-tasks', { method: 'POST' }),
 }

@@ -30,6 +30,13 @@ async def trigger_jopedia_sync(db: DBSession):
     return result
 
 
+@router.post("/sync/extract-tasks")
+async def trigger_task_extraction(db: DBSession):
+    from cbrain.services.task_extractor import extract_tasks_from_brain
+    result = await extract_tasks_from_brain(db)
+    return result
+
+
 @router.get("/sync/status")
 async def sync_status(db: DBSession):
     result = await db.execute(select(SyncState))
