@@ -1,4 +1,3 @@
-import { AgentStatus } from './components/AgentStatus'
 import { ContextSearch } from './components/ContextSearch'
 import { QuestionPanel } from './components/QuestionPanel'
 import { SkillSidebar } from './components/SkillSidebar'
@@ -37,7 +36,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen">
-      {/* ── Header ── */}
+      {/* Header */}
       <header className="border-b border-[var(--border-subtle)] px-8 py-5">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-5">
@@ -55,7 +54,7 @@ export default function App() {
         <ContextSearch />
       </header>
 
-      {/* ── Grid ── */}
+      {/* Grid */}
       <main className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-[var(--border-subtle)]">
         {/* Left — Tasks */}
         <div className="lg:col-span-4 bg-[var(--surface-0)] p-6">
@@ -69,11 +68,9 @@ export default function App() {
           <TimelineView events={d.timeline} />
         </div>
 
-        {/* Right — Skills + Agents */}
-        <div className="lg:col-span-4 bg-[var(--surface-0)] p-6 space-y-8">
+        {/* Right — Skills */}
+        <div className="lg:col-span-4 bg-[var(--surface-0)] p-6">
           <SkillSidebar />
-          <div className="h-px bg-[var(--border-subtle)]" />
-          <AgentStatus agents={d.agents} onRefresh={refresh} />
         </div>
       </main>
     </div>

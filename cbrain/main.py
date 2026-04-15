@@ -10,13 +10,13 @@ from cbrain.api.router import api_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: load skills, start scheduler
-    from cbrain.agents.scheduler import start_scheduler, stop_scheduler
+    # Startup: load skills
+    from cbrain.db.engine import async_session
+    from cbrain.services.skill_loader import load_all_skills
 
-    await start_scheduler()
+    async with async_session() as db:
+        await load_all_skills(db)
     yield
-    # Shutdown
-    await stop_scheduler()
 
 
 app = FastAPI(
