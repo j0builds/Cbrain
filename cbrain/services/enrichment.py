@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cbrain.db.models import ContextEntry, TimelineEvent
 from cbrain.services.claude_client import ask_claude
-from cbrain.services.context_store import generate_embedding
 
 
 # Tier thresholds
@@ -57,9 +56,6 @@ async def enrich_promoted_entries(db: AsyncSession) -> list[dict]:
                 enriched = await _enrich_entry(entry)
                 if enriched:
                     entry.body = enriched
-                    entry.body_embedding = await generate_embedding(
-                        f"{entry.title}\n{enriched}"
-                    )
 
             # Timeline event
             event = TimelineEvent(

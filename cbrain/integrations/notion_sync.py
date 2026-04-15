@@ -1,3 +1,4 @@
+"""Sync pages and tasks from Notion workspace into C-Brain."""
 from __future__ import annotations
 
 import logging
@@ -8,8 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cbrain.config import settings
 from cbrain.db.models import SyncState, TimelineEvent
-from cbrain.services.context_store import create_entry
-from cbrain.services.signal_detector import detect_signals
+from cbrain.services.context_store import create_entry, find_by_source
 from cbrain.services.task_engine import upsert_task
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ async def sync_notion(db: AsyncSession) -> dict:
     """Sync tasks and pages from Notion workspace."""
     import httpx
 
-    api_key = settings.notion_api_key
+    api_key = settings.get_notion_key()
     if not api_key:
         return {"error": "NOTION_API_KEY not configured", "tasks_synced": 0, "pages_synced": 0}
 
@@ -29,22 +29,16 @@ async def sync_notion(db: AsyncSession) -> dict:
         "Content-Type": "application/json",
     }
 
-    # Get sync cursor
-    result = await db.execute(select(SyncState).where(SyncState.source == "notion"))
-    sync_state = result.scalar_one_or_none()
-    last_sync = sync_state.last_sync_at if sync_state else None
-
     tasks_synced = 0
     pages_synced = 0
+    errors = []
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # Search for all pages modified since last sync
-        search_body: dict = {
+        # Search for recent pages
+        search_body = {
             "sort": {"direction": "descending", "timestamp": "last_edited_time"},
-            "page_size": 50,
+            "page_size": 100,
         }
-        if last_sync:
-            search_body["filter"] = {"property": "object", "value": "page"}
 
         try:
             resp = await client.post(
@@ -64,92 +58,94 @@ async def sync_notion(db: AsyncSession) -> dict:
 
             page_id = page["id"]
             title = _extract_title(page)
-            last_edited = page.get("last_edited_time", "")
+            if not title or title == "Untitled":
+                continue
 
-            # Skip if not modified since last sync
-            if last_sync and last_edited:
-                edited_dt = datetime.fromisoformat(last_edited.replace("Z", "+00:00"))
-                if edited_dt <= last_sync:
-                    continue
-
-            # Check if it looks like a task (has status/checkbox properties)
             properties = page.get("properties", {})
+
+            # Detect tasks (pages with status/checkbox properties)
             is_task = any(
                 prop.get("type") in ("status", "checkbox", "select")
-                and key.lower() in ("status", "done", "complete", "state")
+                and key.lower() in ("status", "done", "complete", "state", "stage")
                 for key, prop in properties.items()
             )
 
             if is_task:
-                # Sync as task
-                description = _extract_property_text(properties, ["description", "notes", "details"])
-                urgency = _extract_urgency(properties)
-                due = _extract_date(properties, ["due", "due_date", "deadline"])
+                description = _extract_rich_text(properties, ["description", "notes", "details", "summary"])
+                urgency = _extract_select(properties, ["priority", "urgency"])
+                due = _extract_date(properties, ["due", "due_date", "deadline", "date"])
+
+                urgency_val = "normal"
+                if urgency:
+                    ul = urgency.lower()
+                    if ul in ("critical", "urgent", "p0"):
+                        urgency_val = "critical"
+                    elif ul in ("high", "p1"):
+                        urgency_val = "high"
+                    elif ul in ("low", "p3"):
+                        urgency_val = "low"
 
                 await upsert_task(
-                    db,
-                    title=title,
-                    description=description,
-                    source="notion",
-                    source_id=page_id,
-                    urgency=urgency,
-                    due_date=due,
+                    db, title=title, description=description,
+                    source="notion", source_id=page_id,
+                    urgency=urgency_val, due_date=due,
                 )
                 tasks_synced += 1
             else:
-                # Sync as context entry — fetch page content
+                # Sync as context entry
+                source_id = f"notion:{page_id}"
+                existing = await find_by_source(db, "notion", source_id)
+                if existing:
+                    pages_synced += 1
+                    continue
+
+                # Fetch page content blocks
+                body = title
                 try:
                     blocks_resp = await client.get(
                         f"https://api.notion.com/v1/blocks/{page_id}/children",
                         headers=headers,
+                        params={"page_size": 50},
                     )
-                    blocks_resp.raise_for_status()
-                    blocks = blocks_resp.json().get("results", [])
-                    body = _blocks_to_text(blocks)
-                except Exception:
-                    body = title
+                    if blocks_resp.status_code == 200:
+                        blocks = blocks_resp.json().get("results", [])
+                        block_text = _blocks_to_text(blocks)
+                        if block_text.strip():
+                            body = block_text
+                except Exception as e:
+                    logger.debug(f"Could not fetch blocks for {page_id}: {e}")
 
-                if body.strip():
-                    # Run signal detection
-                    signals = await detect_signals(body, source="notion")
+                # Determine entry type from properties
+                entry_type = "fact"
+                prop_types = {k.lower(): v.get("type") for k, v in properties.items()}
+                if any(k in prop_types for k in ["company", "industry"]):
+                    entry_type = "entity"
+                elif any(k in prop_types for k in ["project", "initiative"]):
+                    entry_type = "project"
 
-                    # Create context entry
-                    await create_entry(
-                        db,
-                        title=title,
-                        body=body[:5000],
-                        entry_type="project" if len(body) > 500 else "fact",
-                        source="notion",
-                        source_id=page_id,
-                    )
-                    pages_synced += 1
-
-                    # Create tasks from detected action items
-                    for signal in signals:
-                        if signal.signal_type == "action_item":
-                            await upsert_task(
-                                db,
-                                title=signal.title,
-                                description=signal.body,
-                                source="notion_signal",
-                                source_id=f"{page_id}:{signal.title}",
-                                urgency=signal.urgency,
-                            )
-                            tasks_synced += 1
+                await create_entry(
+                    db, title=title, body=body[:5000],
+                    entry_type=entry_type, source="notion", source_id=source_id,
+                    tags=["notion"],
+                )
+                pages_synced += 1
 
     # Update sync state
+    result = await db.execute(select(SyncState).where(SyncState.source == "notion"))
+    sync_state = result.scalar_one_or_none()
     if sync_state:
         sync_state.last_sync_at = datetime.now()
+        sync_state.sync_metadata = {"tasks": tasks_synced, "pages": pages_synced}
     else:
-        sync_state = SyncState(source="notion", last_sync_at=datetime.now())
-        db.add(sync_state)
+        db.add(SyncState(
+            source="notion", last_sync_at=datetime.now(),
+            sync_metadata={"tasks": tasks_synced, "pages": pages_synced},
+        ))
 
-    # Timeline event
     event = TimelineEvent(
         event_type="sync",
         summary=f"Notion sync: {tasks_synced} tasks, {pages_synced} pages",
-        source="notion",
-        actor="notion_sync",
+        source="notion", actor="notion_sync",
     )
     db.add(event)
 
@@ -160,44 +156,45 @@ async def sync_notion(db: AsyncSession) -> dict:
 def _extract_title(page: dict) -> str:
     for prop in page.get("properties", {}).values():
         if prop.get("type") == "title":
-            title_parts = prop.get("title", [])
-            return "".join(t.get("plain_text", "") for t in title_parts)
+            return "".join(t.get("plain_text", "") for t in prop.get("title", []))
     return "Untitled"
 
 
-def _extract_property_text(properties: dict, keys: list[str]) -> str | None:
+def _extract_rich_text(properties: dict, keys: list[str]) -> str | None:
     for key in keys:
         for prop_name, prop in properties.items():
-            if prop_name.lower() == key.lower() and prop.get("type") == "rich_text":
-                parts = prop.get("rich_text", [])
-                text = "".join(t.get("plain_text", "") for t in parts)
+            if prop_name.lower() == key and prop.get("type") == "rich_text":
+                text = "".join(t.get("plain_text", "") for t in prop.get("rich_text", []))
                 if text:
                     return text
     return None
 
 
-def _extract_urgency(properties: dict) -> str:
-    for prop_name, prop in properties.items():
-        if prop_name.lower() in ("priority", "urgency"):
-            if prop.get("type") == "select" and prop.get("select"):
-                val = prop["select"].get("name", "").lower()
-                if val in ("critical", "high", "normal", "low"):
-                    return val
-    return "normal"
+def _extract_select(properties: dict, keys: list[str]) -> str | None:
+    for key in keys:
+        for prop_name, prop in properties.items():
+            if prop_name.lower() == key:
+                if prop.get("type") == "select" and prop.get("select"):
+                    return prop["select"].get("name")
+                elif prop.get("type") == "status" and prop.get("status"):
+                    return prop["status"].get("name")
+    return None
 
 
 def _extract_date(properties: dict, keys: list[str]):
     for key in keys:
         for prop_name, prop in properties.items():
-            if prop_name.lower() == key.lower() and prop.get("type") == "date":
+            if prop_name.lower() == key and prop.get("type") == "date":
                 date_obj = prop.get("date")
                 if date_obj and date_obj.get("start"):
-                    return datetime.fromisoformat(date_obj["start"])
+                    try:
+                        return datetime.fromisoformat(date_obj["start"])
+                    except ValueError:
+                        pass
     return None
 
 
 def _blocks_to_text(blocks: list[dict]) -> str:
-    """Convert Notion blocks to plain text."""
     parts = []
     for block in blocks:
         block_type = block.get("type", "")

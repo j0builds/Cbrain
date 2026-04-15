@@ -12,7 +12,6 @@ router = APIRouter()
 @router.post("/sync/notion")
 async def trigger_notion_sync(db: DBSession):
     from cbrain.integrations.notion_sync import sync_notion
-
     result = await sync_notion(db)
     return result
 
@@ -20,8 +19,14 @@ async def trigger_notion_sync(db: DBSession):
 @router.post("/sync/memory")
 async def trigger_memory_sync(db: DBSession):
     from cbrain.integrations.memory_sync import sync_memory
-
     result = await sync_memory(db)
+    return result
+
+
+@router.post("/sync/jopedia")
+async def trigger_jopedia_sync(db: DBSession):
+    from cbrain.integrations.jopedia_sync import sync_jopedia
+    result = await sync_jopedia(db)
     return result
 
 

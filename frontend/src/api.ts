@@ -89,4 +89,5 @@ export const api = {
     request(`/agents/${name}/trigger`, { method: 'POST' }),
   syncNotion: () => request('/sync/notion', { method: 'POST' }),
   syncMemory: () => request('/sync/memory', { method: 'POST' }),
+  syncJopedia: () => request('/sync/jopedia', { method: 'POST' }),
 }

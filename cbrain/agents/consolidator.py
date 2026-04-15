@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cbrain.agents.base import AgentRunResult, BaseAgent
 from cbrain.db.models import ContextEntry, TimelineEvent
 from cbrain.services.claude_client import ask_claude
-from cbrain.services.context_store import generate_embedding
 
 
 class ConsolidatorAgent(BaseAgent):
@@ -78,9 +77,6 @@ Write the updated compiled truth."""
             try:
                 response = await ask_claude(prompt, system=system, max_tokens=2048)
                 entry.body = response.text.strip()
-                entry.body_embedding = await generate_embedding(
-                    f"{entry.title}\n{entry.body}"
-                )
 
                 # Record consolidation
                 consolidation_event = TimelineEvent(

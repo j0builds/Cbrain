@@ -1,20 +1,14 @@
 import { useState } from 'react'
 import { AgentStatus as AgentStatusType, api } from '../api'
 
-const AGENT_LABELS: Record<string, string> = {
+const AGENTS: Record<string, string> = {
   consolidator: 'Consolidator',
   enricher: 'Enricher',
   prioritizer: 'Prioritizer',
   question_generator: 'Questions',
 }
 
-export function AgentStatus({
-  agents,
-  onRefresh,
-}: {
-  agents: AgentStatusType[]
-  onRefresh: () => void
-}) {
+export function AgentStatus({ agents, onRefresh }: { agents: AgentStatusType[]; onRefresh: () => void }) {
   const [triggering, setTriggering] = useState<string | null>(null)
 
   const handleTrigger = async (name: string) => {
@@ -29,50 +23,43 @@ export function AgentStatus({
     }
   }
 
-  const agentNames = ['consolidator', 'enricher', 'prioritizer', 'question_generator']
-
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-4">Agents</h2>
-      <div className="space-y-2">
-        {agentNames.map((name) => {
-          const agent = agents.find((a) => a.agent_name === name)
+      <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[var(--soma-dim)] block mb-5">
+        Autonomous Agents
+      </span>
+
+      <div className="space-y-1">
+        {Object.entries(AGENTS).map(([name, label]) => {
+          const agent = agents.find(a => a.agent_name === name)
+          const statusColor = !agent ? 'var(--soma-dim)' :
+            agent.status === 'completed' ? 'var(--axon)' :
+            agent.status === 'failed' ? 'var(--inhibit)' : 'var(--myelin)'
+
           return (
             <div
               key={name}
-              className="flex items-center justify-between bg-gray-800/50 border border-gray-700/50 rounded-lg px-3 py-2"
+              className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-[var(--surface-1)] transition-colors group"
             >
-              <div>
-                <span className="text-sm text-white">
-                  {AGENT_LABELS[name] || name}
-                </span>
-                {agent ? (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span
-                      className={`text-xs ${
-                        agent.status === 'completed'
-                          ? 'text-green-400'
-                          : agent.status === 'failed'
-                            ? 'text-red-400'
-                            : 'text-yellow-400'
-                      }`}
-                    >
-                      {agent.status === 'completed' ? '✓' : agent.status === 'failed' ? '✕' : '◐'}
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
+                <div>
+                  <span className="text-[13px] text-[var(--soma)]">{label}</span>
+                  {agent ? (
+                    <span className="font-mono text-[10px] text-[var(--soma-dim)] opacity-50 ml-2">
+                      {new Date(agent.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(agent.started_at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-600">Never run</p>
-                )}
+                  ) : (
+                    <span className="font-mono text-[10px] text-[var(--soma-dim)] opacity-30 ml-2">idle</span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => handleTrigger(name)}
                 disabled={triggering === name}
-                className="text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 text-gray-300 disabled:opacity-50"
+                className="text-[11px] px-2 py-1 border border-[var(--border)] rounded text-[var(--soma-dim)] opacity-0 group-hover:opacity-100 hover:text-[var(--soma)] hover:bg-[var(--surface-2)] disabled:opacity-30 transition-opacity"
               >
-                {triggering === name ? '...' : '▶'}
+                {triggering === name ? '...' : 'trigger'}
               </button>
             </div>
           )

@@ -12,23 +12,20 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-gray-400 text-lg">Loading C-Brain...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-[var(--soma-dim)] text-sm tracking-wide">Initializing cortex...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-400 text-lg mb-2">Connection Error</p>
-          <p className="text-gray-500 text-sm">{error}</p>
-          <button
-            onClick={refresh}
-            className="mt-4 px-4 py-2 bg-blue-600 rounded text-sm hover:bg-blue-500 text-white"
-          >
-            Retry
+          <p className="text-[var(--inhibit)] text-sm mb-3">Signal lost</p>
+          <p className="text-[var(--soma-dim)] text-xs mb-4">{error}</p>
+          <button onClick={refresh} className="text-xs px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[var(--soma)] hover:bg-[var(--surface-3)]">
+            Reconnect
           </button>
         </div>
       </div>
@@ -36,53 +33,46 @@ export default function App() {
   }
 
   const d = data!
-
-  const totalTasks = Object.values(d.task_counts).reduce(
-    (a, b) => a + b,
-    0
-  )
+  const openCount = d.tasks.filter(t => t.status !== 'done').length
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      {/* Header */}
-      <header className="border-b border-gray-800 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              C-Brain
-            </h1>
-            <span className="text-xs bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded border border-blue-500/30">
-              MVP
-            </span>
-            <span className="text-xs text-gray-500">
-              {totalTasks} tasks · {d.questions.length} questions pending
+    <div className="min-h-screen">
+      {/* ── Header ── */}
+      <header className="border-b border-[var(--border-subtle)] px-8 py-5">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-[var(--axon)]" />
+              <h1 className="text-base font-semibold text-white tracking-tight">C-Brain</h1>
+            </div>
+            <div className="h-4 w-px bg-[var(--border)]" />
+            <span className="text-xs text-[var(--soma-dim)] font-mono">
+              {openCount} active signals &middot; {d.questions.length} pending
             </span>
           </div>
           <SyncBar onRefresh={refresh} />
         </div>
-
-        {/* Search */}
-        <div className="mt-4">
-          <ContextSearch />
-        </div>
+        <ContextSearch />
       </header>
 
-      {/* Main grid */}
-      <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-        {/* Left column — Tasks */}
-        <div className="lg:col-span-1">
+      {/* ── Grid ── */}
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-px bg-[var(--border-subtle)]">
+        {/* Left — Tasks */}
+        <div className="lg:col-span-4 bg-[var(--surface-0)] p-6">
           <TaskList tasks={d.tasks} onRefresh={refresh} />
         </div>
 
-        {/* Center column — Questions + Timeline */}
-        <div className="lg:col-span-1 space-y-8">
+        {/* Center — Questions + Timeline */}
+        <div className="lg:col-span-4 bg-[var(--surface-0)] p-6 space-y-8">
           <QuestionPanel questions={d.questions} onRefresh={refresh} />
+          <div className="h-px bg-[var(--border-subtle)]" />
           <TimelineView events={d.timeline} />
         </div>
 
-        {/* Right column — Skills + Agents */}
-        <div className="lg:col-span-1 space-y-8">
+        {/* Right — Skills + Agents */}
+        <div className="lg:col-span-4 bg-[var(--surface-0)] p-6 space-y-8">
           <SkillSidebar />
+          <div className="h-px bg-[var(--border-subtle)]" />
           <AgentStatus agents={d.agents} onRefresh={refresh} />
         </div>
       </main>

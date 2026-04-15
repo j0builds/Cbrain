@@ -25,53 +25,42 @@ export function SkillSidebar() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-4">Skills</h2>
-      <div className="space-y-2">
-        {skills.map((skill) => (
+      <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[var(--soma-dim)] block mb-5">
+        Skill Pathways
+      </span>
+
+      <div className="space-y-1">
+        {skills.map(skill => (
           <div
             key={skill.id}
-            className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-3"
+            className="flex items-center justify-between px-3 py-2.5 rounded-md hover:bg-[var(--surface-1)] transition-colors group"
           >
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <span className="text-sm font-medium text-white">
-                  {skill.display_name}
-                </span>
-                <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
-                  {skill.description}
-                </p>
-              </div>
-              <button
-                onClick={() => handleExecute(skill)}
-                disabled={executing === skill.id}
-                className="ml-3 text-xs px-3 py-1.5 bg-emerald-600/20 border border-emerald-500/30 rounded hover:bg-emerald-600/30 text-emerald-400 disabled:opacity-50 flex-shrink-0"
-              >
-                {executing === skill.id ? '...' : 'Run'}
-              </button>
+            <div className="min-w-0 flex-1">
+              <span className="text-[13px] text-[var(--soma)]">{skill.display_name}</span>
+              <p className="text-[11px] text-[var(--soma-dim)] opacity-60 mt-0.5 line-clamp-1">
+                {skill.description}
+              </p>
             </div>
-            {skill.execution_count > 0 && (
-              <span className="text-xs text-gray-600 mt-1 inline-block">
-                Ran {skill.execution_count}x
-              </span>
-            )}
+            <button
+              onClick={() => handleExecute(skill)}
+              disabled={executing === skill.id}
+              className="ml-3 text-[11px] px-2.5 py-1 border border-[var(--border)] rounded text-[var(--axon)] opacity-0 group-hover:opacity-100 hover:bg-[var(--surface-2)] disabled:opacity-30 transition-opacity flex-shrink-0"
+            >
+              {executing === skill.id ? '...' : 'Run'}
+            </button>
           </div>
         ))}
       </div>
 
       {result && (
-        <div className="mt-4 bg-gray-900 border border-gray-700 rounded-lg p-3">
+        <div className="mt-4 bg-[var(--surface-1)] border border-[var(--border-subtle)] rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-400">
-              Skill Output
-            </span>
-            <button
-              onClick={() => setResult(null)}
-              className="text-xs text-gray-500 hover:text-gray-300"
-            >
-              Close
+            <span className="text-[10px] font-mono text-[var(--soma-dim)]">OUTPUT</span>
+            <button onClick={() => setResult(null)} className="text-[10px] text-[var(--soma-dim)] hover:text-[var(--soma)]">
+              close
             </button>
           </div>
-          <pre className="text-xs text-gray-300 whitespace-pre-wrap max-h-60 overflow-y-auto">
+          <pre className="text-[12px] font-mono text-[var(--soma)] whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
             {result}
           </pre>
         </div>

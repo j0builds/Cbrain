@@ -10,6 +10,13 @@ interface SearchResult {
   score: number
 }
 
+const tierColor: Record<string, string> = {
+  critical: 'var(--inhibit)',
+  high: 'var(--myelin)',
+  medium: 'var(--dendrite)',
+  low: 'var(--soma-dim)',
+}
+
 export function ContextSearch() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -28,58 +35,35 @@ export function ContextSearch() {
     }
   }
 
-  const tierColors: Record<string, string> = {
-    critical: 'text-red-400',
-    high: 'text-orange-400',
-    medium: 'text-yellow-400',
-    low: 'text-gray-400',
-  }
-
   return (
     <div>
       <div className="flex gap-2">
         <input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-          placeholder="Search brain..."
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleSearch()}
+          placeholder="Query the cortex..."
+          className="flex-1 bg-[var(--surface-1)] border border-[var(--border)] rounded-md px-4 py-2 text-[13px] text-[var(--soma)] placeholder:text-[var(--soma-dim)] placeholder:opacity-40 focus:outline-none focus:border-[var(--dendrite)]"
         />
         <button
           onClick={handleSearch}
           disabled={searching}
-          className="px-4 py-2 bg-blue-600 rounded-lg text-sm hover:bg-blue-500 text-white disabled:opacity-50"
+          className="px-4 py-2 bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-[13px] text-[var(--soma-dim)] hover:text-[var(--soma)] hover:bg-[var(--surface-3)] disabled:opacity-30"
         >
           {searching ? '...' : 'Search'}
         </button>
       </div>
 
       {results.length > 0 && (
-        <div className="mt-4 space-y-2">
-          {results.map((r) => (
-            <div
-              key={r.id}
-              className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-3"
-            >
+        <div className="mt-3 bg-[var(--surface-1)] border border-[var(--border-subtle)] rounded-lg divide-y divide-[var(--border-subtle)]">
+          {results.slice(0, 8).map(r => (
+            <div key={r.id} className="px-4 py-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-white">
-                  {r.title}
-                </span>
-                <span className="text-xs bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">
-                  {r.entry_type}
-                </span>
-                <span
-                  className={`text-xs ${tierColors[r.importance_tier]}`}
-                >
-                  {r.importance_tier}
-                </span>
+                <span className="text-[13px] text-[var(--soma)] font-medium">{r.title}</span>
+                <span className="font-mono text-[10px] text-[var(--soma-dim)] opacity-50">{r.entry_type}</span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: tierColor[r.importance_tier] || 'var(--soma-dim)' }} />
               </div>
-              <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                {r.body}
-              </p>
-              <span className="text-xs text-gray-600 mt-1 inline-block">
-                Score: {r.score.toFixed(4)}
-              </span>
+              <p className="text-[11px] text-[var(--soma-dim)] mt-1 line-clamp-2 leading-relaxed">{r.body}</p>
             </div>
           ))}
         </div>

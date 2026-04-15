@@ -1,59 +1,54 @@
 import { TimelineEvent } from '../api'
 
-const typeColors: Record<string, string> = {
-  sync: 'text-blue-400',
-  task_created: 'text-green-400',
-  enrichment: 'text-purple-400',
-  consolidation: 'text-yellow-400',
-  created: 'text-emerald-400',
-  updated: 'text-orange-400',
+const typeColor: Record<string, string> = {
+  sync: 'var(--axon)',
+  task_created: 'var(--dendrite)',
+  enrichment: 'var(--myelin)',
+  consolidation: 'var(--myelin)',
+  created: 'var(--axon)',
+  updated: 'var(--dendrite)',
 }
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
+  if (mins < 1) return 'now'
+  if (mins < 60) return `${mins}m`
   const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
 }
 
 export function TimelineView({ events }: { events: TimelineEvent[] }) {
   return (
     <div>
-      <h2 className="text-lg font-semibold text-white mb-4">Timeline</h2>
-      <div className="space-y-2">
-        {events.length === 0 && (
-          <p className="text-gray-500 text-sm py-4 text-center">
-            No events yet. Sync data or run agents to populate.
-          </p>
-        )}
-        {events.map((event) => (
-          <div
-            key={event.id}
-            className="flex items-start gap-3 py-2 border-b border-gray-800/50 last:border-0"
-          >
-            <span className="text-xs text-gray-500 w-16 flex-shrink-0 pt-0.5">
-              {timeAgo(event.created_at)}
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm text-gray-300">{event.summary}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span
-                  className={`text-xs ${typeColors[event.event_type] || 'text-gray-500'}`}
-                >
-                  {event.event_type}
+      <span className="text-[11px] font-semibold tracking-[0.08em] uppercase text-[var(--soma-dim)] block mb-5">
+        Signal History
+      </span>
+
+      {events.length === 0 ? (
+        <p className="text-[var(--soma-dim)] text-xs py-6 text-center opacity-50">No signals recorded.</p>
+      ) : (
+        <div className="space-y-0">
+          {events.map(event => (
+            <div key={event.id} className="flex items-start gap-3 py-2">
+              <span className="font-mono text-[10px] text-[var(--soma-dim)] opacity-50 w-8 text-right flex-shrink-0 pt-px">
+                {timeAgo(event.created_at)}
+              </span>
+              <div
+                className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                style={{ backgroundColor: typeColor[event.event_type] || 'var(--soma-dim)' }}
+              />
+              <div className="min-w-0">
+                <p className="text-[12px] text-[var(--soma)] leading-snug">{event.summary}</p>
+                <span className="font-mono text-[10px] text-[var(--soma-dim)] opacity-40">
+                  {event.event_type}{event.actor ? ` / ${event.actor}` : ''}
                 </span>
-                {event.actor && (
-                  <span className="text-xs text-gray-600">{event.actor}</span>
-                )}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
